@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tamriel Tiny Idle</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#121820; --panel-2:#0f141b; --muted:#9aa8b2; --text:#e9eef5;
+      --accent:#9bd0ff; --good:#7fda72; --bad:#ff6b6b; --warn:#ffd36a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+         background: radial-gradient(1200px 600px at 20% -10%, #112233 0%, transparent 60%),
+                     radial-gradient(800px 400px at 110% 10%, #0c1a28 0%, transparent 60%),
+                     linear-gradient(#081019, #0b0f14);
+         color:var(--text);
+    }
+    .container{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+    h1{font-size:clamp(22px,3vw,32px);font-weight:800;letter-spacing:.5px;margin:0;display:flex;gap:.5ch;align-items:center}
+    .subtitle{color:var(--muted);font-size:.95rem}
+
+    .bar{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #1b2532;border-radius:16px;padding:12px;box-shadow: 0 6px 24px rgba(0,0,0,.3)}
+    .stat{display:flex;flex-direction:column;gap:6px}
+    .stat .label{font-size:.8rem;color:var(--muted)}
+    .stat .value{font-weight:700;font-size:1.05rem}
+
+    .xpwrap{grid-column:1/-1}
+    .xp{position:relative;height:12px;border-radius:999px;background:#0f1924;border:1px solid #1f2a38;overflow:hidden}
+    .xp>div{position:absolute;height:100%;left:0;top:0;width:0%;background:linear-gradient(90deg,#5aa9ff,#82e0ff)}
+    .xp small{display:block;margin-top:6px;color:var(--muted)}
+
+    .actions{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:16px 0}
+    button.btn{appearance:none;border:1px solid #1b2532;background:linear-gradient(180deg,#162232,#0f1824);color:var(--text);
+      padding:12px;border-radius:14px;font-weight:700;cursor:pointer;transition: transform .05s ease, background .2s ease, filter .2s ease; text-align:left}
+    button.btn b{display:block;font-size:1rem}
+    button.btn span{display:block;color:var(--muted);font-size:.8rem}
+    button.btn:hover{background:linear-gradient(180deg,#1a2b3f,#121b28)}
+    button.btn:active{transform:translateY(1px)}
+    button.primary{box-shadow:0 10px 24px rgba(96,170,255,.12)}
+    button.danger{border-color:#402027}
+    button.danger:hover{filter:brightness(1.05)}
+    button[disabled]{opacity:.5;cursor:not-allowed;filter:grayscale(.4)}
+
+    .cols{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+    @media (max-width: 920px){.actions{grid-template-columns:repeat(2,1fr)}.bar{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}}
+
+    .panel h2{margin:.25rem 0 .75rem 0;font-size:1rem;color:var(--accent);letter-spacing:.3px}
+
+    .upgrades{display:grid;grid-template-columns:1fr;gap:8px}
+    .upgrade{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border-radius:12px;background:#0e151f;border:1px solid #1a2432}
+    .upgrade .uinfo{display:flex;flex-direction:column}
+    .upgrade .uinfo small{color:var(--muted)}
+
+    .log{height:260px;overflow:auto;background:#0c1119;border:1px solid #1a2330;border-radius:12px;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;font-size:.9rem;line-height:1.35}
+    .log p{margin:.25rem 0}
+
+    footer{display:flex;gap:14px;align-items:center;justify-content:space-between;margin-top:14px;color:var(--muted)}
+    .leftf{display:flex;gap:12px;align-items:center}
+    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #1b2532;background:#0f1824;border-radius:999px;padding:6px 10px;font-size:.8rem}
+    .badge.good{border-color:#294532;color:var(--good)}
+    .badge.warn{border-color:#4a3f20;color:var(--warn)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🗡️ Tamriel Tiny Idle</h1>
+        <div class="subtitle">A single-file HTML loop inspired by the Elder Scrolls vibe (no assets required).</div>
+      </div>
+      <div class="badge" id="saveStatus">Autosave enabled</div>
+    </header>
+
+    <section class="bar">
+      <div class="card stat"><div class="label">Level</div><div class="value" id="level">1</div><small id="xpText" class="muted"></small></div>
+      <div class="card stat"><div class="label">Septims</div><div class="value" id="septims">0</div><small>Passive <span id="gps">0</span>/s</small></div>
+      <div class="card stat"><div class="label">Stamina</div><div class="value" id="stamina">10 / 10</div><small>+<span id="stamRegen">0</span>/s</small></div>
+      <div class="card stat"><div class="label">Magicka</div><div class="value" id="magicka">10 / 10</div><small>+<span id="magRegen">0</span>/s</small></div>
+      <div class="card stat"><div class="label">Dragon Souls</div><div class="value" id="souls">0</div><small>Prestige currency</small></div>
+      <div class="card stat"><div class="label">Multipliers</div><div class="value" id="mult">x1.00</div><small id="multBreak"></small></div>
+      <div class="card xpwrap">
+        <div class="xp"><div id="xpBar"></div></div>
+        <small>Next level in <span id="toNext">0</span> XP</small>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button id="actExplore" class="btn primary" title="Spend 1 Stamina to explore. Small gold + XP; occasional events."><b>Explore</b><span>Cost: 1 Stamina · Key: E</span></button>
+      <button id="actQuest" class="btn primary" title="Spend Stamina + Magicka to take on a contract. Good rewards, small risk."><b>Take Quest</b><span>Cost: 5 Sta, 3 Mag · Key: Q</span></button>
+      <button id="actCraft" class="btn" title="Transmute Magicka into Soul Power (small permanent boost per run)."><b>Craft Soul Gem</b><span>Cost: 6 Mag · Key: C</span></button>
+      <button id="actTrain" class="btn" title="Invest Septims to grow stronger and boost gains."><b>Train</b><span id="trainCost">Cost: 25</span></button>
+      <button id="actShout" class="btn" title="Consume 1 Dragon Soul to double gains for a while."><b>Unleash a Shout</b><span>+100% gains · Key: R</span></button>
+      <button id="actPrestige" class="btn danger" title="Ascend to claim Dragon Souls. Resets most progress."><b>Dragon Ascendance</b><span>Reset for Souls · Key: P</span></button>
+    </section>
+
+    <section class="cols">
+      <div class="card panel">
+        <h2>Upgrades & Followers</h2>
+        <div class="upgrades" id="upgrades"></div>
+      </div>
+      <div class="card panel">
+        <h2>Event Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="leftf">
+        <label class="badge"><input type="checkbox" id="autosave" checked style="accent-color:#7fda72"> Autosave</label>
+        <label class="badge"><input type="checkbox" id="mute" style="accent-color:#9bd0ff"> Mute</label>
+      </div>
+      <div class="badge warn">Shortcuts: E Q C T R P</div>
+    </footer>
+  </div>
+
+  <script>
+  // ===== Utility =====
+  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const chance=p=>Math.random()<p;
+  const fmt=(n)=>{
+    if(!isFinite(n)) return '∞';
+    const neg = n<0; n=Math.abs(n);
+    const units=["","k","M","B","T","q","Q"];
+    let u=0; while(n>=1000 && u<units.length-1){n/=1000;u++;}
+    return (neg?"-":"") + (n>=100? n.toFixed(0) : n>=10? n.toFixed(1) : n.toFixed(2)) + units[u];
+  };
+  const now=()=>performance.now();
+
+  function playClick(){ if(document.getElementById('mute').checked) return; try{ const a=new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(); const g=a.createGain(); o.frequency.value=440+rnd(-80,80); g.gain.value=.03; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+.06);}catch(e){} }
+
+  // ===== Ambient Flavor =====
+  const AMBIENT_MESSAGES = [
+    'A cold wind whispers through the pines.',
+    'You hear distant chanting by a word wall.',
+    'A fox darts across the road and vanishes into the brush.',
+    'Tavern gossip speaks of a treasure buried nearby.',
+    'The moons Masser and Secunda peek through the clouds.',
+    'A courier rushes past, muttering about a "letter for you" and then thinks better of it.',
+    'You find a quiet overlook. Time seems to slow.',
+    'A guard mutters something about arrows and knees.',
+    'A skeever scurries by. You keep your boots out of reach.',
+    'You sharpen your blade and check your pack.',
+    'A stray nirnroot hums softly by the riverbank.',
+    'You scan the horizon—clear for now.',
+    'You practice a breath of the Thu\'um under your breath.',
+    'The road forks; your instincts say forward.'
+  ];
+
+  // ===== Game State =====
+  const DEFAULT={
+    v:1,
+    level:1,xp:0,nextXp:30,
+    septims:0,totalGold:0,
+    stamina:10,maxStamina:10,magicka:10,maxMagicka:10,
+    power:0, soulPower:0,
+    followers:0, smithing:0, regenS:0, regenM:0,
+    dragonSouls:0,
+    shout:{active:false,t:0,duration:45}, // seconds
+    shopDiscount:0, shopTimer:0,
+    trophies:0,
+    lastSave:0
+  };
+  let S = load() || structuredClone(DEFAULT);
+
+  // ===== Upgrades =====
+  const UPG=[
+    {key:'maxStamina', name:'Stamina Training', desc:'+2 Max Stamina', base:20, scale:1.45, apply:()=>{S.maxStamina+=2}},
+    {key:'maxMagicka', name:'Magicka Study', desc:'+2 Max Magicka', base:20, scale:1.45, apply:()=>{S.maxMagicka+=2}},
+    {key:'regenS', name:'Endurance', desc:'+0.15 Sta regen /s', base:30, scale:1.55, apply:()=>{S.regenS+=0.15}},
+    {key:'regenM', name:'Focus', desc:'+0.12 Mag regen /s', base:30, scale:1.55, apply:()=>{S.regenM+=0.12}},
+    {key:'smithing', name:'Smithing', desc:'+5% Explore rewards', base:40, scale:1.6, apply:()=>{S.smithing+=1}},
+    {key:'followers', name:'Hire Follower', desc:'+0.5 Septims/s', base:60, scale:1.65, apply:()=>{S.followers+=1}},
+  ];
+  const UCount = Object.fromEntries(UPG.map(u=>[u.key,0]));
+
+  // ===== DOM =====
+  const el=(id)=>document.getElementById(id);
+  const d={
+    level:el('level'), septims:el('septims'), stamina:el('stamina'), magicka:el('magicka'),
+    souls:el('souls'), mult:el('mult'), multBreak:el('multBreak'), gps:el('gps'),
+    stamRegen:el('stamRegen'), magRegen:el('magRegen'), xpBar:el('xpBar'), toNext:el('toNext'), xpText:el('xpText'),
+    trainCost:el('trainCost'), log:el('log'), upgrades:el('upgrades'), saveStatus:el('saveStatus')
+  };
+
+  // ===== Math =====
+  function baseMult(){
+    let m=1;
+    m *= (1 + S.power*0.05);
+    m *= (1 + S.smithing*0.05);
+    m *= (1 + S.dragonSouls*0.15);
+    m *= (1 + S.soulPower*0.04);
+    if(S.shout.active) m *= 2;
+    return m;
+  }
+  function goldPerSecond(){ return S.followers*0.5*baseMult(); }
+  function trainPrice(){ return Math.round(25 * Math.pow(1.6, S.power)); }
+
+  // ===== UI =====
+  function addLog(msg,color){
+    const p=document.createElement('p');
+    if(color) p.style.color=color; p.textContent=msg; d.log.prepend(p);
+    while(d.log.childElementCount>120) d.log.removeChild(d.log.lastChild);
+  }
+
+  function renderUpgrades(){
+    d.upgrades.innerHTML='';
+    UPG.forEach(u=>{
+      const bought = UCount[u.key]||0;
+      const cost = Math.round(u.base*Math.pow(u.scale,bought) * (1 - S.shopDiscount));
+      const div=document.createElement('div');
+      div.className='upgrade';
+      div.innerHTML = `<div class="uinfo"><b>${u.name}</b><small>${u.desc}</small></div>`;
+      const btn=document.createElement('button');
+      btn.className='btn';
+      btn.textContent = `Buy (${fmt(cost)})`;
+      btn.disabled = S.septims < cost;
+      btn.onclick=()=>{
+        if(S.septims>=cost){
+          S.septims-=cost; S.totalGold+=0; UCount[u.key]=(UCount[u.key]||0)+1; u.apply();
+          addLog(`Purchased ${u.name}.`, '#9bd0ff'); playClick();
+          renderAll();
+        }
+      };
+      div.appendChild(btn);
+      d.upgrades.appendChild(div);
+    });
+  }
+
+  function renderAll(){
+    const m=baseMult();
+    d.level.textContent = S.level;
+    d.septims.textContent = fmt(S.septims);
+    d.stamina.textContent = `${S.stamina.toFixed(1)} / ${S.maxStamina}`;
+    d.magicka.textContent = `${S.magicka.toFixed(1)} / ${S.maxMagicka}`;
+    d.souls.textContent = S.dragonSouls;
+    d.mult.textContent = `x${m.toFixed(2)}`;
+    d.multBreak.textContent = `Pow ${S.power}, Smith ${S.smithing}, Souls ${S.dragonSouls}, SoulPower ${S.soulPower}${S.shout.active?" · Shout!":""}`;
+    d.gps.textContent = (goldPerSecond()).toFixed(2);
+    d.stamRegen.textContent = (0.3 + S.regenS).toFixed(2);
+    d.magRegen.textContent = (0.25 + S.regenM).toFixed(2);
+    d.xpBar.style.width = `${Math.min(100,(S.xp/S.nextXp)*100)}%`;
+    d.toNext.textContent = Math.max(0, Math.ceil(S.nextXp - S.xp));
+    d.xpText.textContent = `XP ${Math.floor(S.xp)} / ${S.nextXp}`;
+
+    // Buttons
+    byId('actExplore').disabled = S.stamina < 1;
+    byId('actQuest').disabled   = S.stamina < 5 || S.magicka < 3;
+    byId('actCraft').disabled   = S.magicka < 6;
+    byId('actTrain').disabled   = S.septims < trainPrice();
+    d.trainCost.textContent = `Cost: ${fmt(trainPrice())}`;
+    byId('actShout').disabled   = !(S.dragonSouls>0 && !S.shout.active);
+
+    const canPrestige = canAscend();
+    byId('actPrestige').disabled = !canPrestige;
+    byId('actPrestige').querySelector('span').textContent = canPrestige? `Ready: +${previewSouls()} Souls · Key: P` : 'Reset for Souls · Key: P';
+
+    renderUpgrades();
+  }
+
+  function byId(id){return document.getElementById(id)}
+
+  // ===== Core Actions =====
+  function gainXP(n){ S.xp += n; if(S.xp>=S.nextXp){ S.xp-=S.nextXp; S.level++; S.nextXp = Math.floor(S.nextXp*1.25 + 10); addLog(`Level up! You reached level ${S.level}.`, '#7fda72'); }}
+
+  function explore(){
+    if(S.stamina<1) return;
+    S.stamina-=1; playClick();
+    const m=baseMult();
+    const gold = (2 + S.level + (S.smithing*1.2)) * (0.9+rnd(0,0.3)) * m;
+    S.septims += gold; S.totalGold += gold;
+    gainXP(3*m);
+    if(chance(0.12)) { // small events
+      const kind=Math.random();
+      if(kind<0.5){ addLog('You cleared a bandit camp and found a pouch of septims.', '#c7eafe'); }
+      else if(kind<0.85){ addLog('You discovered a word wall fragment. Power surges within.', '#c7eafe'); S.soulPower += 0.2; }
+      else { addLog('A Khajiit merchant crosses your path. Shop discount for 30s!', '#ffd36a'); S.shopDiscount=0.15; S.shopTimer=30; }
+    }
+  }
+
+  function quest(){
+    if(S.stamina<5||S.magicka<3) return;
+    S.stamina-=5; S.magicka-=3; playClick();
+    const m=baseMult();
+    const success = chance(Math.min(0.7 + S.power*0.02 + S.level*0.005, 0.95));
+    if(success){
+      const gold = (24 + S.level*2) * (1+rnd(0,0.6)) * m;
+      S.septims += gold; S.totalGold += gold; gainXP(40*m);
+      if(chance(0.2)){ S.trophies++; addLog('Quest complete! You claimed a rare trophy.', '#7fda72'); }
+      else addLog('Quest complete! Your deeds are sung in a nearby tavern.', '#7fda72');
+    }else{
+      const loss = Math.min(S.septims, 8 + S.level*1.5);
+      S.septims -= loss; addLog('Quest failed. You were forced to retreat.', '#ff8b8b');
+      gainXP(10*m*0.5);
+    }
+  }
+
+  function craft(){
+    if(S.magicka<6) return; S.magicka-=6; playClick();
+    S.soulPower += 1; gainXP(8*baseMult()); addLog('You bound a soul gem. Your essence grows a little stronger.', '#c7eafe');
+  }
+
+  function train(){
+    const cost = trainPrice(); if(S.septims<cost) return; S.septims-=cost; S.power++; gainXP(6*baseMult()); playClick(); addLog('Training pays off. You feel stronger.', '#9bd0ff');
+  }
+
+  function shout(){
+    if(S.dragonSouls<=0 || S.shout.active) return; S.dragonSouls--; S.shout.active=true; S.shout.t=S.shout.duration; addLog('⚡ You unleash a Thu\'um! Gains doubled for 45s.', '#82e0ff'); playClick();
+  }
+
+  function canAscend(){
+    return S.level>=20 || S.totalGold>=5000;
+  }
+  function previewSouls(){
+    const fromLvl = Math.floor(S.level/10);
+    const fromWealth = Math.max(0, Math.floor(Math.log10(S.totalGold+1)));
+    const fromTrophies = Math.floor(S.trophies*0.5);
+    return Math.max(1, fromLvl + fromWealth + fromTrophies);
+  }
+  function ascend(){
+    if(!canAscend()) return;
+    const gain = previewSouls();
+    addLog(`You meditate on the Way of the Voice and ascend. +${gain} Dragon Soul${gain>1?'s':''}.`, '#ffd36a');
+    S.dragonSouls += gain;
+    // reset most progress
+    const keep = {dragonSouls:S.dragonSouls};
+    S = {...structuredClone(DEFAULT), ...keep};
+    renderAll();
+  }
+
+  // ===== Loop =====
+  let last = now(), acc=0, LOGIC_HZ=10, UI_MS=250, lastUI=0, idleClock=0, idleNext=5.5;
+  function tick(dt){
+    // regen
+    S.stamina = clamp(S.stamina + (0.3 + S.regenS)*dt, 0, S.maxStamina);
+    S.magicka = clamp(S.magicka + (0.25 + S.regenM)*dt, 0, S.maxMagicka);
+    const m=baseMult();
+
+    // passive gold, no passive XP
+    const g = goldPerSecond()*dt; S.septims += g; S.totalGold += g;
+
+    // timed effects
+    if(S.shout.active){ S.shout.t -= dt; if(S.shout.t<=0){ S.shout.active=false; addLog('Your Shout fades...', '#9aa8b2'); }}
+    if(S.shopDiscount>0){ S.shopTimer-=dt; if(S.shopTimer<=0){ S.shopDiscount=0; addLog('The Khajiit merchant departs.', '#9aa8b2'); }}
+
+    // gentle ambient flavor while idle
+    idleClock += dt;
+    if (idleClock >= idleNext) {
+      const pool = [...AMBIENT_MESSAGES];
+      if (S.shopDiscount>0) pool.push('Khajiit caravans haggle in the distance. Prices seem softer.');
+      if (S.shout.active)   pool.push('Your voice still echoes across the hills.');
+      if (S.followers>0)    pool.push('Your follower hums a tune from the tavern.');
+      if (S.trophies>0)     pool.push('You polish a hard-won trophy.');
+      const msg = pool[Math.floor(Math.random()*pool.length)];
+      addLog(msg, '#9aa8b2');
+      idleClock = 0; idleNext = 5 + Math.random()*3; // 5–8s
+    }
+
+    // occasional ambient events (light economy variance)
+    if(chance(0.002)){ // ~once per ~50s at 10hz
+      if(chance(0.5) && S.septims>=40){
+        if(chance(0.5)){ const w=80* (1 + S.power*0.05); S.septims+=w; addLog('A Daedric wager pays off handsomely.', '#ffd36a'); }
+        else { S.septims-=40; addLog('A Daedric wager backfires. You lose 40 septims.', '#ff8b8b'); }
+      }else{
+        S.stamina = clamp(S.stamina+1,0,S.maxStamina); addLog('You find a roadside shrine and feel refreshed.', '#7fda72');
+      }
+    }
+  }
+
+  function loop(t){
+    const dt = Math.min(0.25, (t-last)/1000); last=t; acc+=dt;
+    while(acc >= 1/LOGIC_HZ){ tick(1/LOGIC_HZ); acc -= 1/LOGIC_HZ; }
+    if(t-lastUI>UI_MS){ renderAll(); lastUI=t; }
+    requestAnimationFrame(loop);
+  }
+
+  // ===== Save/Load =====
+  const KEY='tamriel-tiny-idle:save';
+  function save(){
+    if(!byId('autosave').checked) return;
+    try{ localStorage.setItem(KEY, JSON.stringify({...S, lastSave: Date.now()})); d.saveStatus.textContent = 'Saved'; setTimeout(()=>d.saveStatus.textContent='Autosave enabled',1200);}catch(e){ console.warn('Save failed',e) }
+  }
+  function load(){
+    try{ const raw=localStorage.getItem(KEY); if(!raw) return null; const obj=JSON.parse(raw); if(obj && obj.v){ return obj; } return obj; }catch(e){ return null }
+  }
+  setInterval(save, 5000);
+
+  // ===== Bindings =====
+  byId('actExplore').onclick=()=>{explore()};
+  byId('actQuest').onclick=()=>{quest()};
+  byId('actCraft').onclick=()=>{craft()};
+  byId('actTrain').onclick=()=>{train()};
+  byId('actShout').onclick=()=>{shout()};
+  byId('actPrestige').onclick=()=>{ascend()};
+
+  window.addEventListener('keydown',(e)=>{
+    if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+    const k=e.key.toLowerCase();
+    if(k==='e') explore();
+    else if(k==='q') quest();
+    else if(k==='c') craft();
+    else if(k==='t') train();
+    else if(k==='r') shout();
+    else if(k==='p') ascend();
+  });
+
+  // ===== Boot =====
+  addLog('Welcome to Tamriel. Explore, take quests, and grow in power.', '#c7eafe');
+  renderAll();
+  requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
